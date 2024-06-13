@@ -1,32 +1,31 @@
-name: Deploy
-on:
-  workflow_call:
-    inputs:
-      branch:
-        required: true
-        type: string
-      jdk:
-        default: 8
-        type: string
 jobs:
   Deploy:
-    name: Deploy to OSSRH
-    runs-on: ubuntu-latest
     env:
-      VERTX_NEXUS_USERNAME: ${{ secrets.VERTX_NEXUS_USERNAME }}
       VERTX_NEXUS_PASSWORD: ${{ secrets.VERTX_NEXUS_PASSWORD }}
+      VERTX_NEXUS_USERNAME: ${{ secrets.VERTX_NEXUS_USERNAME }}
+    name: Deploy to OSSRH
+    runs-on: self-hosted
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ inputs.branch }}
-      - name: Install JDK
-        uses: actions/setup-java@v2
-        with:
-          java-version: ${{ inputs.jdk }}
-          distribution: temurin
-      - name: Get project version
-        run: echo "PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version -q -DforceStdout | grep -v '\[')" >> $GITHUB_ENV
-      - name: Maven deploy
-        if: ${{ endsWith(env.PROJECT_VERSION, '-SNAPSHOT') }}
-        run: mvn deploy -s .github/maven-cd-settings.xml -DskipTests -B
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ inputs.branch }}
+    - continue-on-error: true
+      name: Install JDK
+      uses: actions/setup-java@v2
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.jdk }}
+    - continue-on-error: true
+      name: Get project version
+      run: echo "PROJECT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:evaluate
+        -Dexpression=project.version -q -DforceStdout | grep -v '\[')" >> $GITHUB_ENV
+    - continue-on-error: true
+      if: ${{ endsWith(env.PROJECT_VERSION, '-SNAPSHOT') }}
+      name: Maven deploy
+      run: mvn deploy -s .github/maven-cd-settings.xml -DskipTests -B
+name: Deploy
+on:
+  repository_dispatch:
+    types: trigger-ga___deploy.yml
